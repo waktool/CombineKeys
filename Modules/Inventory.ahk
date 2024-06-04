@@ -5,7 +5,7 @@
 ; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
 
 global INVENTORY_BLUE_CAT_ICON := Map("Start", [424, 232], "End", [432, 240], "Colour", 0x14DCCD, "Tolerance", 5)
-global INVENTORY_SEARCH_CURSOR := Map("Start", [1334, 238], "End", [1334, 238], "Colour", 0xAFAFAF, "Tolerance", 5)
+global INVENTORY_SEARCH_CURSOR := Map("Start", [1320, 265], "End", [1340, 265], "Colour", 0xAFAFAF, "Tolerance", 5)
 global INVENTORY_SEARCH_TERM := Map("Start", [1408, 246], "End", [1422, 257], "Colour", 0x1E1E1E, "Tolerance", 5)
 global OOPS_ERROR_QUESTION_MARK := Map("Start", [1011, 528], "End", [1011, 528], "Colour", 0xFFB837, "Tolerance", 5)
 global ITEMS_TAB_BOOSTS_TEXT := Map("X", 907, "Y", 287, "W", 101, "H", 28, "Scale", 5)
