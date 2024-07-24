@@ -9,8 +9,8 @@
 
 #Requires AutoHotkey v2.0  ; Ensures the script runs only on AutoHotkey version 2.0, which supports the syntax and functions used in this script.
 #SingleInstance Force  ; Forces the script to run only in a single instance. If this script is executed again, the new instance will replace the old one.
-CoordMode "Mouse", "Window"  ; Sets the coordinate mode for mouse functions (like Click, MouseMove) to be relative to the active window's client area, ensuring consistent mouse positioning across different window states.
-CoordMode "Pixel", "Window"  ; Sets the coordinate mode for pixel functions (like PixelSearch, PixelGetColor) to be relative to the active window's client area, improving accuracy in color detection and manipulation.
+CoordMode "Mouse", "Client"  ; Sets the coordinate mode for mouse functions (like Click, MouseMove) to be relative to the active window's client area, ensuring consistent mouse positioning across different window states.
+CoordMode "Pixel", "Client"  ; Sets the coordinate mode for pixel functions (like PixelSearch, PixelGetColor) to be relative to the active window's client area, improving accuracy in color detection and manipulation.
 SetMouseDelay 10  ; Sets the delay between mouse events to 10 milliseconds, balancing speed and reliability of automated mouse actions.
 
 
@@ -20,19 +20,15 @@ SetMouseDelay 10  ; Sets the delay between mouse events to 10 milliseconds, bala
 
 ; Titles and versioning for GUI elements.
 global MACRO_TITLE := "Combine Keys"  ; The title displayed in main GUI elements.
-global MACRO_VERSION := "0.3.0"  ; Script version, helpful for user support and debugging.
+global MACRO_VERSION := "1.0.0"  ; Script version, helpful for user support and debugging.
 
 
 ; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
 ; LIBRARIES
 ; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
 
-; Third-party Libraries:
-#Include <OCR>  ; Include the OCR library for performing optical character recognition.
-
 ; Macro Related Libraries:
 #Include "%A_ScriptDir%\Modules"    
-#Include "Coords.ahk"  ; Include the Coords.ahk script, which contains coordinate definitions.
 #Include "Inventory.ahk"  ; Include the Inventory.ahk script, which contains inventory-related functions and definitions.
 
 ; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
@@ -77,23 +73,12 @@ runMacro() {
 ; MACRO SETTINGS/FUNCTIONS
 ; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
 
-; ---------------------------------------------------------------------------------
-; completeInitialisationTasks Function
-; Description: Completes the initial setup tasks necessary for the macro to function correctly.
-; Operation:
-;   - Calls the updateTrayIcon function to set up the tray icon for the script.
-;   - Activates the Roblox window to ensure it is the current foreground application.
-;   - Changes the Roblox window to fullscreen mode for optimal gameplay experience.
-; Dependencies:
-;   - updateTrayIcon: Function to update the script's tray icon.
-;   - activateRoblox: Function to activate the Roblox game window.
-;   - changeToFullscreen: Function to switch the Roblox game to fullscreen mode.
-; Return: None; the function calls other functions to perform setup tasks.
-; ---------------------------------------------------------------------------------
 completeInitialisationTasks() {
     updateTrayIcon()  ; Set up the tray icon for the script.
     activateRoblox()  ; Ensure Roblox is the current foreground application.
-    changeToFullscreen()  ; Switch the game to fullscreen mode.
+    resizeRobloxWindow()
+    closeLeaderboard()
+    closeChatLog()
 }
 
 ; ---------------------------------------------------------------------------------
@@ -137,21 +122,75 @@ activateRoblox() {
     Sleep 200  ; Delay for stabilization after activation.
 }
 
-; ---------------------------------------------------------------------------------
-; changeToFullscreen Function
-; Description: Toggles the Roblox game window to full screen mode if not already.
+; ----------------------------------------------------------------------------------------
+; resizeRobloxWindow Function
+; Description: Resizes the Roblox window to specific dimensions to fix any scaling issues with the Supercomputer.
 ; Operation:
-;   - Checks current window size against the screen resolution and sends F11 if not full screen.
-; Dependencies: None.
-; Return: None; alters the window state of the game.
-; ---------------------------------------------------------------------------------
-changeToFullscreen() {
-    WinGetPos &X, &Y, &W, &H, "ahk_exe RobloxPlayerBeta.exe"  ; Get current window position.
-    if (H != A_ScreenHeight) {
-        Send "{F11}"  ; Toggle full screen.
+;   - Activates the Roblox window.
+;   - Restores the Roblox window if it is minimized.
+;   - Resizes the window twice to ensure any scaling issues are fixed.
+; Dependencies:
+;   - WinActivate: Activates the specified window.
+;   - WinRestore: Restores the specified window if it is minimized.
+;   - WinMove: Resizes and moves the specified window.
+; Parameters: None
+; Return: None
+; ----------------------------------------------------------------------------------------
+resizeRobloxWindow() {
+    try {
+        windowHandle := WinGetID("ahk_exe RobloxPlayerBeta.exe")
+    } catch {
+        MsgBox "Roblox window not found."  ; Error message if window is not found.
+        ExitApp  ; Exit the script.
     }
+
+    WinActivate windowHandle ; Activate the Roblox window.
+    WinRestore windowHandle   ; Restore the Roblox window if it is minimized.
+    ; Resize the window twice to fix any scaling issues with the Supercomputer.
+    WinMove , , A_ScreenWidth, 600, windowHandle  ; Resize the window to screen width by 600 pixels height.
+    WinMove , , 800, 600, windowHandle  ; Resize the window to 800x600 pixels dimensions.    
 }
 
+; ----------------------------------------------------------------------------------------
+; closeLeaderboard Function
+; Description: Searches for the leaderboard rank star icon on the screen and closes the leaderboard if found.
+; Operation:
+;   - Uses PixelSearch to find the leaderboard rank star icon within specified coordinates and color.
+;   - If the leaderboard rank star icon is found, sends the Tab key to close the leaderboard.
+; Dependencies: None
+; Parameters: None
+; Return: None; performs the search and send key operations to close the leaderboard.
+; ----------------------------------------------------------------------------------------
+closeLeaderboard() {
+    leaderboardRankStar := Map("Start", [652, 43], "End", [678, 59], "Colour", "0xB98335", "Tolerance", 50)    
+    ; Perform pixel search within specified coordinates and color.
+    if PixelSearch(&foundX, &foundY,
+        leaderboardRankStar["Start"][1], leaderboardRankStar["Start"][2], 
+        leaderboardRankStar["End"][1], leaderboardRankStar["End"][2],  
+        leaderboardRankStar["Colour"], leaderboardRankStar["Tolerance"]) 
+        SendEvent "{Tab}"  ; Send the Tab key to close the leaderboard.
+}
+
+; ----------------------------------------------------------------------------------------
+; closeChatLog Function
+; Description: Searches for the chat log icon on the screen and closes the chat log if found.
+; Operation:
+;   - Uses PixelSearch to find the chat log icon within specified coordinates and color.
+;   - If the chat log icon is found, clicks on it to close the chat log.
+; Dependencies:
+;   - leftClickMouse: Function to simulate mouse click at given coordinates.
+; Parameters: None
+; Return: None; performs the search and click operations to close the chat log.
+; ----------------------------------------------------------------------------------------
+closeChatLog() {
+    chatIconWhite := Map("Start", [81, 24], "End", [81, 24], "Colour", "0xFFFFFF", "Tolerance", 2)
+    ; Perform pixel search within specified coordinates and color.
+    if PixelSearch(&foundX, &foundY,  
+        chatIconWhite["Start"][1], chatIconWhite["Start"][2], 
+        chatIconWhite["End"][1], chatIconWhite["End"][2],  
+        chatIconWhite["Colour"], chatIconWhite["Tolerance"])
+        SendEvent "{Click, " foundX ", " foundY ", 1}"
+}
 
 ; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
 ; GUI INITIALISATION
@@ -224,10 +263,16 @@ showMainGui() {
 ; Return: None; the function directly interacts with the game's window and controls.
 ; ---------------------------------------------------------------------------------
 combineKeys(*) {
+    Sleep 2000
     activateRoblox()  ; Ensure Roblox is the current foreground application.
     
-    Loop {
-        useItem("Key: Upper Half")  ; Use the specified item repeatedly.
+    keys := ["Tech Key: Upper Half", "Crystal Key: Upper Half"]
+    for key in keys {
+        Loop {
+            hasItem := useItem(key)  ; Use the specified item repeatedly.
+            if !hasItem
+                break
+        }
     }
     
     closeInventoryMenu()  ; Close the inventory menu after finishing.
@@ -272,7 +317,6 @@ exitMacro(*) {
 ; Return: None; the function directly interacts with the system and controls the macro's state.
 ; ---------------------------------------------------------------------------------
 pauseMacro(*) {
-    Send "{F11}"  ; Toggle the screen state between maximized and unmaximized.
     Pause -1  ; Pause the macro indefinitely if the screen is unmaximized; otherwise, resume.
 }
 
@@ -287,26 +331,4 @@ pauseMacro(*) {
 ; ---------------------------------------------------------------------------------
 setCurrentAction(currentAction) {
     lvCurrent.Modify(1, , currentAction)  ; Modify the first row to display the new action.
-}
-
-
-; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
-; OCR FUNCTIONS
-; ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰
-
-; ---------------------------------------------------------------------------------
-; getOcr Function
-; Description: Performs Optical Character Recognition (OCR) on a specified rectangular area.
-; Operation:
-;   - Uses the OCR.FromRect method to perform OCR on the defined area (X, Y, W, H) with the specified scale.
-;   - Returns either the OCR result object or just the recognized text based on the returnObject parameter.
-; Dependencies:
-;   - OCR.FromRect: Method to perform OCR on a specified rectangular area.
-; Return: 
-;   - If returnObject is true, returns the OCR result object.
-;   - If returnObject is false, returns the recognized text from the OCR result.
-; ---------------------------------------------------------------------------------
-getOcr(X, Y, W, H, ocrScale, returnObject := false) {
-    ocrObjectResult := OCR.FromRect(X, Y, W, H, "en", ocrScale)  ; Perform OCR on the specified area.
-    return returnObject ? ocrObjectResult : ocrObjectResult.Text  ; Return the OCR result object or text.
 }
